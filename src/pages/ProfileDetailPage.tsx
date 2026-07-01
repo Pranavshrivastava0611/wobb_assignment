@@ -1,37 +1,82 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { Layout } from "@/components/Layout";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { StatCard } from "@/components/StatCard";
 import type { FullUserProfile, ProfileDetailResponse, Platform } from "@/types";
-import { formatFollowers } from "@/utils/formatters";
 import { loadProfileByUsername } from "@/utils/profileLoader";
 import { useListStore } from "@/store/useListStore";
+import { buildStatItems } from "@/utils/statHelpers";
+import { useScrollReveal, useHorizontalScroll, useParallax } from "@/hooks/useGsap";
+import { gsap } from "@/utils/gsapInit";
 
 export function ProfileDetailPage() {
   const { username } = useParams<{ username: string }>();
   const [searchParams] = useSearchParams();
   const platform = searchParams.get("platform") || "unknown";
-  const [profileData, setProfileData] = useState<ProfileDetailResponse | null>(
-    null
-  );
+  const [profileData, setProfileData] = useState<ProfileDetailResponse | null>(null);
   const [loaded, setLoaded] = useState(false);
-  
-  const { addProfile, removeProfile, isInList } = useListStore();
 
   useEffect(() => {
     if (!username) return;
-
     loadProfileByUsername(username).then((data) => {
       setProfileData(data);
       setLoaded(true);
     });
   }, [username]);
 
+  // Animation refs
+  const aboutRef = useScrollReveal<HTMLDivElement>({ y: 30, delay: 0.1 });
+  const avatarParallaxRef = useParallax<HTMLDivElement>(-0.15);
+  const { sectionRef: statsSectionRef, trackRef: statsTrackRef } =
+    useHorizontalScroll<HTMLDivElement>();
+
+  // Stat counter animation
+  const statsGridRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!loaded || !statsGridRef.current) return;
+
+    const ctx = gsap.context(() => {
+      const counters = statsGridRef.current!.querySelectorAll("[data-stat-value]");
+      counters.forEach((el) => {
+        const raw = el.getAttribute("data-stat-value") || "0";
+        const num = parseFloat(raw);
+        if (isNaN(num)) return;
+
+        const suffix = el.getAttribute("data-stat-suffix") || "";
+        const obj = { val: 0 };
+
+        gsap.to(obj, {
+          val: num,
+          duration: 1.8,
+          ease: "power2.out",
+          scrollTrigger: {
+            trigger: el,
+            start: "top 90%",
+            toggleActions: "play none none none",
+          },
+          onUpdate: () => {
+            (el as HTMLElement).textContent =
+              (num >= 100
+                ? Math.round(obj.val).toLocaleString()
+                : obj.val.toFixed(2)) + suffix;
+          },
+        });
+      });
+    }, statsGridRef);
+
+    return () => {
+      ctx.revert();
+    };
+  }, [loaded]);
+
+  // ── Early returns for loading / error states ──
+
   if (!username) {
     return (
       <Layout>
-        <p>Invalid profile</p>
-        <Link to="/">Back</Link>
+        <p className="text-[#6B6B6B]">Invalid profile</p>
+        <Link to="/" className="text-[#C4A265] underline">Back</Link>
       </Layout>
     );
   }
@@ -39,7 +84,10 @@ export function ProfileDetailPage() {
   if (!loaded) {
     return (
       <Layout title={`@${username}`}>
-        <p className="text-gray-400">Loading...</p>
+        <div className="flex items-center justify-center py-20">
+          <div className="w-8 h-8 border-2 border-[#C4A265] border-t-transparent rounded-full animate-spin" />
+          <span className="ml-3 text-[#9A9A9A] font-display italic">Loading...</span>
+        </div>
       </Layout>
     );
   }
@@ -47,20 +95,65 @@ export function ProfileDetailPage() {
   if (!profileData) {
     return (
       <Layout title={`@${username}`}>
-        <p className="text-red-600 mb-4">
-          Could not load profile details for {username}
-        </p>
-        <Link to="/" className="text-blue-600 underline">
+        <p className="text-red-600 mb-4">Could not load profile details for {username}</p>
+        <Link to="/" className="text-[#C4A265] underline hover:text-[#8B6914] transition-colors">
           Back to search
         </Link>
       </Layout>
     );
   }
 
-  const user: FullUserProfile = profileData.data.user_profile;
-  const inList = isInList(user.user_id);
+  // ── Data-ready render ──
 
-  const handleListToggle = () => {
+  const user: FullUserProfile = profileData.data.user_profile;
+
+  return (
+    <ProfileContent
+      user={user}
+      platform={platform}
+      aboutRef={aboutRef}
+      avatarParallaxRef={avatarParallaxRef}
+      statsGridRef={statsGridRef}
+      statsSectionRef={statsSectionRef}
+      statsTrackRef={statsTrackRef}
+    />
+  );
+}
+
+// ────────────────────────────────────────────────────────────────────────────
+// Extracted content component — keeps the main component lean and allows
+// hooks at the top level while still having early-return guards above.
+// ────────────────────────────────────────────────────────────────────────────
+
+interface ProfileContentProps {
+  user: FullUserProfile;
+  platform: string;
+  aboutRef: React.RefObject<HTMLDivElement | null>;
+  avatarParallaxRef: React.RefObject<HTMLDivElement | null>;
+  statsGridRef: React.RefObject<HTMLDivElement | null>;
+  statsSectionRef: React.RefObject<HTMLDivElement | null>;
+  statsTrackRef: React.RefObject<HTMLDivElement | null>;
+}
+
+function ProfileContent({
+  user,
+  platform,
+  aboutRef,
+  avatarParallaxRef,
+  statsGridRef,
+  statsSectionRef,
+  statsTrackRef,
+}: ProfileContentProps) {
+  const inList = useListStore((state) =>
+    state.profiles.some((p) => p.user_id === user.user_id)
+  );
+  const addProfile = useListStore((state) => state.addProfile);
+  const removeProfile = useListStore((state) => state.removeProfile);
+
+  // Memoize stat items so they don't rebuild every render
+  const statItems = useMemo(() => buildStatItems(user), [user]);
+
+  const handleListToggle = useCallback(() => {
     if (inList) {
       removeProfile(user.user_id);
     } else {
@@ -75,52 +168,63 @@ export function ProfileDetailPage() {
         platform: platform as Platform,
       });
     }
-  };
+  }, [inList, removeProfile, addProfile, user, platform]);
 
   return (
-    <Layout title={user.fullname}>
-      <Link to="/" className="inline-flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 transition-colors mb-8 bg-purple-500/10 px-4 py-2 rounded-full border border-purple-500/20 w-fit">
-        ← Back to Search
+    <Layout>
+      {/* ── Back Button ── */}
+      <Link
+        to="/"
+        className="inline-flex items-center gap-2 text-sm text-[#6B6B6B] hover:text-[#1A1A1A] transition-colors mb-8
+                   bg-white px-5 py-2.5 rounded-full border border-[rgba(193,162,101,0.15)] shadow-sm
+                   hover:shadow-md group w-fit no-underline"
+      >
+        <span className="inline-block transition-transform duration-300 group-hover:-translate-x-1">←</span>
+        Back to Search
       </Link>
 
-      <div className="flex flex-col md:flex-row gap-8 items-start text-left w-full max-w-5xl mx-auto">
-        {/* Left Column: Avatar & Basic Info */}
-        <div className="flex flex-col items-center md:items-start glass p-8 rounded-3xl w-full md:w-1/3 text-center md:text-left">
-          <div className="relative mb-6">
-            <div className="absolute inset-0 bg-gradient-to-tr from-purple-500 to-pink-500 rounded-full blur-md opacity-50"></div>
+      {/* ── Hero Profile Section ── */}
+      <div className="flex flex-col md:flex-row gap-8 lg:gap-12 items-start text-left w-full max-w-6xl mx-auto">
+        {/* Left Column */}
+        <div className="flex flex-col items-center md:items-start bg-white p-8 md:p-10 rounded-3xl w-full md:w-[340px] lg:w-[380px] text-center md:text-left border border-[rgba(193,162,101,0.12)] shadow-sm">
+          <div ref={avatarParallaxRef} className="relative mb-6">
+            <div className="absolute -inset-2 rounded-full border-2 border-[#E8D5B5] opacity-60" />
+            <div className="absolute -inset-4 rounded-full border border-[#F0E8D5] opacity-40" />
             <img
               src={user.picture}
               alt={user.fullname}
-              className="relative w-32 h-32 md:w-48 md:h-48 rounded-full border-4 border-[#12121a] object-cover shadow-2xl"
+              className="relative w-32 h-32 md:w-44 md:h-44 rounded-full border-4 border-white object-cover shadow-xl hover:scale-105 transition-transform duration-500"
             />
           </div>
-          <h2 className="text-2xl md:text-3xl font-bold text-white flex items-center justify-center md:justify-start gap-2 mb-1">
+
+          <h2 className="text-2xl md:text-3xl font-bold text-[#1A1A1A] flex items-center justify-center md:justify-start gap-2 mb-1">
             @{user.username}
             <VerifiedBadge verified={user.is_verified} />
           </h2>
-          <p className="text-gray-400 font-medium text-lg">{user.fullname}</p>
-          <div className="mt-4 px-3 py-1 bg-white/10 rounded-full text-xs font-semibold text-gray-300 border border-white/5 uppercase tracking-wider">
+          <p className="text-[#6B6B6B] font-display italic text-lg">{user.fullname}</p>
+
+          <div className="mt-4 px-4 py-1.5 bg-[#F5F0E8] rounded-full text-xs font-semibold text-[#8B6914] border border-[#E8D5B5] uppercase tracking-wider">
             {platform}
           </div>
 
           <div className="w-full mt-8 flex flex-col gap-3">
             <button
-              className={`w-full py-3 px-4 rounded-xl font-semibold transition-all duration-300 ${
+              className={`w-full py-3.5 px-4 rounded-xl font-semibold transition-all duration-300 text-sm ${
                 inList
-                  ? "bg-white/10 text-white hover:bg-white/20 border border-white/10"
-                  : "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg hover:shadow-purple-500/25 hover:scale-[1.02]"
+                  ? "bg-[#F5F0E8] text-[#8B6914] border border-[#E8D5B5] hover:bg-[#E8D5B5]"
+                  : "bg-[#1A1A1A] text-white shadow-md hover:bg-[#6B4226] hover:scale-[1.02] hover:shadow-lg"
               }`}
               onClick={handleListToggle}
             >
-              {inList ? "Remove from List" : "Add to List"}
+              {inList ? "✓ In Your Collection" : "Add to Collection"}
             </button>
-            
+
             {user.url && (
               <a
                 href={user.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full py-3 px-4 rounded-xl font-semibold bg-white/5 text-gray-300 border border-white/5 hover:bg-white/10 hover:text-white transition-colors text-center"
+                className="w-full py-3.5 px-4 rounded-xl font-semibold bg-white text-[#1A1A1A] border border-[rgba(193,162,101,0.15)] hover:bg-[#F5F0E8] hover:border-[#E8D5B5] transition-all duration-300 text-center text-sm no-underline"
               >
                 View on {platform} ↗
               </a>
@@ -128,63 +232,55 @@ export function ProfileDetailPage() {
           </div>
         </div>
 
-        {/* Right Column: Stats & Description */}
+        {/* Right Column */}
         <div className="flex-1 w-full">
           {user.description && (
-            <div className="glass p-6 md:p-8 rounded-3xl mb-6">
-              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-widest mb-4">About</h3>
-              <p className="text-gray-200 leading-relaxed whitespace-pre-wrap">{user.description}</p>
+            <div ref={aboutRef} className="bg-white p-6 md:p-8 rounded-3xl mb-6 border border-[rgba(193,162,101,0.12)] shadow-sm">
+              <h3 className="text-xs font-semibold text-[#C4A265] uppercase tracking-[0.15em] mb-4">About</h3>
+              <p className="text-[#2D2D2D] leading-relaxed whitespace-pre-wrap">{user.description}</p>
             </div>
           )}
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <StatCard label="Followers" value={formatFollowers(user.followers)} />
-            
-            <StatCard 
-              label="Engagement Rate" 
-              value={user.engagement_rate !== undefined ? (user.engagement_rate * 100).toFixed(2) + "%" : "N/A"} 
-              highlight
-            />
-            
-            {user.posts_count !== undefined && (
-              <StatCard label="Posts" value={user.posts_count.toLocaleString()} />
-            )}
-            
-            {user.avg_likes !== undefined && (
-              <StatCard label="Avg Likes" value={formatFollowers(user.avg_likes)} />
-            )}
-            
-            {user.avg_comments !== undefined && (
-              <StatCard label="Avg Comments" value={user.avg_comments.toLocaleString()} />
-            )}
-            
-            {user.avg_views !== undefined && user.avg_views > 0 && (
-              <StatCard label="Avg Views" value={formatFollowers(user.avg_views)} />
-            )}
-            
-            {user.engagements !== undefined && (
-              <StatCard label="Engagements" value={formatFollowers(user.engagements)} />
-            )}
+          <div ref={statsGridRef} className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+            {statItems.map((stat) => (
+              <StatCard key={stat.label} label={stat.label} value={stat.value} highlight={stat.highlight} />
+            ))}
           </div>
         </div>
       </div>
-    </Layout>
-  );
-}
 
-function StatCard({ label, value, highlight = false }: { label: string, value: string | number, highlight?: boolean }) {
-  return (
-    <div className={`p-6 rounded-3xl border transition-all duration-300 ${
-      highlight 
-        ? "bg-gradient-to-br from-purple-900/40 to-pink-900/40 border-purple-500/30 shadow-[0_0_30px_-10px_rgba(168,85,247,0.2)]" 
-        : "glass glass-hover"
-    }`}>
-      <div className={`text-sm font-medium mb-2 ${highlight ? "text-purple-300" : "text-gray-400"}`}>
-        {label}
-      </div>
-      <div className={`text-2xl md:text-3xl font-bold ${highlight ? "text-white" : "text-gray-100"}`}>
-        {value}
-      </div>
-    </div>
+      {/* ── Cinematic Horizontal Scroll Stats ── */}
+      {statItems.length >= 3 && (
+        <div className="mt-16 md:mt-24">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-[#C4A265] mb-6">◆ Performance Overview</p>
+          <div ref={statsSectionRef} className="horizontal-scroll-section">
+            <div ref={statsTrackRef} className="horizontal-scroll-track py-4">
+              {statItems.map((stat, i) => (
+                <div
+                  key={stat.label}
+                  className={`shrink-0 w-[280px] md:w-[320px] p-8 rounded-3xl border transition-all duration-300 ${
+                    stat.highlight
+                      ? "bg-gradient-to-br from-[#F5F0E8] to-[#EDE6D8] border-[#C4A265]/30 shadow-lg"
+                      : "bg-white border-[rgba(193,162,101,0.12)] shadow-sm hover:shadow-md"
+                  }`}
+                >
+                  <div className={`text-xs font-semibold uppercase tracking-[0.15em] mb-3 ${stat.highlight ? "text-[#8B6914]" : "text-[#9A9A9A]"}`}>
+                    {stat.label}
+                  </div>
+                  <div
+                    className={`text-4xl md:text-5xl font-bold font-display ${stat.highlight ? "text-[#6B4226]" : "text-[#1A1A1A]"}`}
+                    data-stat-value={stat.rawNum}
+                    data-stat-suffix={stat.suffix}
+                    data-stat-index={i}
+                  >
+                    {stat.value}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </Layout>
   );
 }

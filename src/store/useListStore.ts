@@ -1,10 +1,9 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
-import type { UserProfileSummary } from '../types';
+import type { Platform, UserProfileSummary } from '@/types';
 
 export interface ListProfile extends UserProfileSummary {
-  // Adding platform to the list profile as it might be useful
-  platform?: 'instagram' | 'youtube' | 'tiktok';
+  platform?: Platform;
 }
 
 interface ListState {
@@ -22,7 +21,7 @@ export const useListStore = create<ListState>()(
       addProfile: (profile) =>
         set((state) => {
           if (state.profiles.some((p) => p.user_id === profile.user_id)) {
-            return state;
+            return state; // Deduplication guard — returns same reference to skip re-render
           }
           return { profiles: [...state.profiles, profile] };
         }),
@@ -34,7 +33,7 @@ export const useListStore = create<ListState>()(
       clearList: () => set({ profiles: [] }),
     }),
     {
-      name: 'influencer-list-storage', // unique name for localStorage key
+      name: 'influencer-list-storage',
     }
   )
 );
