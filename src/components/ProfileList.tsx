@@ -1,31 +1,30 @@
+import React from "react";
 import type { Platform, UserProfileSummary } from "@/types";
 import { ProfileCard } from "./ProfileCard";
 
 interface ProfileListProps {
   profiles: UserProfileSummary[];
   platform: Platform;
-  searchQuery: string;
-  onProfileClick: (username: string) => void;
 }
 
-export function ProfileList({
+export const ProfileList = React.memo(function ProfileList({
   profiles,
   platform,
-  searchQuery,
-  onProfileClick,
 }: ProfileListProps) {
   return (
-    <div className="flex flex-col items-center">
-      {profiles.length === 0 && <p>No profiles found</p>}
-      {profiles.map((profile) => (
-        <ProfileCard
-          key={profile.user_id}
-          profile={profile}
-          platform={platform}
-          searchQuery={searchQuery}
-          onProfileClick={onProfileClick}
-        />
-      ))}
+    <div className="w-full">
+      {profiles.length === 0 && <p className="text-gray-500 text-center py-8">No profiles found matching your search</p>}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 place-items-center md:place-items-stretch">
+        {profiles.map((profile) => (
+          <div key={profile.user_id} className="w-full flex justify-center">
+            <ProfileCard
+              profile={profile}
+              platform={platform}
+              searchQuery=""
+            />
+          </div>
+        ))}
+      </div>
     </div>
   );
-}
+});
