@@ -10,7 +10,7 @@ const mockProfiles: UserProfileSummary[] = [
     picture: "pic1.jpg",
     followers: 178000000,
     is_verified: true,
-    platform: "youtube"
+    url: "https://youtube.com/mrbeast"
   },
   {
     user_id: "2",
@@ -19,7 +19,7 @@ const mockProfiles: UserProfileSummary[] = [
     picture: "pic2.jpg",
     followers: 678000000,
     is_verified: true,
-    platform: "instagram"
+    url: "https://instagram.com/instagram"
   },
   {
     user_id: "3",
@@ -28,7 +28,7 @@ const mockProfiles: UserProfileSummary[] = [
     picture: "pic3.jpg",
     followers: 641000000,
     is_verified: true,
-    platform: "instagram"
+    url: "https://instagram.com/cristiano"
   }
 ];
 

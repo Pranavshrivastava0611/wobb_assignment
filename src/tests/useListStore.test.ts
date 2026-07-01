@@ -8,6 +8,7 @@ const mockProfile = {
   picture: "pic.jpg",
   followers: 178000000,
   is_verified: true,
+  url: "https://youtube.com/mrbeast",
   platform: "youtube" as const
 };
 
