@@ -1,80 +1,86 @@
-# Wobb Frontend Assignment
+# Wobb Frontend Assignment — Influencer Search Application
 
-A starter influencer search application built with **React**, **TypeScript**, **Vite**, and **Tailwind CSS**. This project is intentionally left in a rough-but-working state for candidates to improve.
+A modern, high-performance influencer search and discovery dashboard built with React, TypeScript, Vite, and Tailwind CSS. 
 
-## Getting Started
+This repository was submitted as part of the Wobb Frontend Assignment. It transforms the original starter template into a fully polished, production-ready interface with robust state management, micro-animations, and complete functionality.
 
+## ✨ What's New & Changed
+
+### 1. Complete UI/UX Redesign
+- Replaced the basic layout with a sleek, modern **Dark Theme** utilizing glassmorphism and gradient accents.
+- Implemented responsive grid layouts for profile cards and detail pages to ensure flawless rendering on mobile devices.
+- Integrated `framer-motion` for smooth micro-animations, page transitions, and an interactive slide-out Drawer.
+- Improved typography utilizing the `Inter` font family and clear visual hierarchy.
+
+### 2. Robust State Management (Zustand)
+- Replaced the legacy React Context API with **Zustand** for lightweight, predictable state management.
+- Implemented the `persist` middleware to save the user's selected "My List" to LocalStorage.
+- Ensure state persistence across page refreshes and seamless updates across different components without unnecessary prop drilling.
+
+### 3. "Add to List" Feature
+- Built the fully functional "Add to List" feature.
+- Users can add/remove profiles from anywhere in the application (Dashboard or Profile Details).
+- A centralized `ListDrawer` component acts as the "My List" hub. It uses `createPortal` to overlay the entire UI properly and allows users to manage their selected influencers effortlessly.
+- Strict deduplication ensures profiles cannot be added twice.
+
+### 4. Critical Bug Fixes & Resiliency
+- **Data Formatting:** Fixed broken engagement rate logic and formatting issues across multiple files.
+- **Search Resiliency:** Implemented a custom `useDebounce` hook to prevent rapid re-renders during search. Search is now fully case-insensitive.
+- **Data Fallbacks:** Fixed an issue where clicking on 80% of the profiles resulted in a crash due to missing detailed JSON files. The app now gracefully falls back to displaying basic profile data from the search indices when a dedicated JSON file doesn't exist.
+
+### 5. Code Quality & Performance
+- Removed unused dependencies (e.g. `react-beautiful-dnd`) and consolidated utility functions.
+- Used `React.memo`, `useMemo`, and debouncing to optimize rendering loops.
+- Enforced strict TypeScript typing across all API payloads and internal state definitions.
+
+---
+
+## 📦 Libraries Added
+- `zustand`: Used for global state management and LocalStorage persistence. Chosen for its zero-boilerplate API and excellent TypeScript support.
+- `framer-motion`: Used for smooth layout transitions and the animated slide-out Drawer.
+- `lucide-react`: Replaced emoji icons with professional, consistent SVG iconography.
+
+---
+
+## 🛠️ Assumptions & Trade-Offs
+
+### Assumptions Made:
+- **Data Completeness:** The starter project only provided 6 detailed JSON files for 30 total profiles. I assumed that rather than throwing an error for the missing 24 profiles, the application should intelligently merge and display whatever basic data is available from the search index. 
+- **Persistence:** I assumed that "persistent after page refresh" meant client-side persistence (LocalStorage) rather than setting up a mock backend.
+
+### Trade-Offs:
+- **Client-Side Filtering vs API:** Since the data is static JSON, all search filtering is executed client-side. In a real-world scenario with millions of influencers, this would be shifted to a debounced backend API call. 
+- **Tailwind v4 vs Legacy:** The project appears to be initialized with modern Tailwind CSS. I opted to use pure Tailwind classes (with custom theme variables) rather than bringing in complex UI component libraries (like shadcn/ui or MUI) to keep the bundle size small and demonstrate core CSS proficiency.
+
+---
+
+## 🚀 Future Improvements
+Given more time, the following enhancements could be made:
+1. **Virtualization:** For very large search results, implementing `react-window` or `@tanstack/react-virtual` to optimize DOM nodes.
+2. **E2E Testing:** Adding Cypress or Playwright tests to verify the critical path (Search -> Click Profile -> Add to List -> Check Persistence).
+3. **Advanced Filtering:** Allowing users to filter by Engagement Rate, Follower Count ranges, or specific demographic criteria.
+
+---
+
+## 💻 Getting Started
+
+### Prerequisites
+- Node.js (v18+)
+- npm or yarn
+
+### Installation
 ```bash
+# Clone the repository
+git clone https://github.com/Wobb-ai/vibe-coder-assignment
+
+# Install dependencies
 npm install
+
+# Start the development server
 npm run dev
+
+# Create an optimized production build
+npm run build
 ```
 
-Open [http://localhost:5173](http://localhost:5173) to view the app.
-
-## What's Included
-
-- **Search / Dashboard** — filter influencers by platform (Instagram, YouTube, TikTok) and search by username or full name
-- **Profile Details** — click a profile to view extended data loaded from individual JSON files
-- **Routing** — `react-router-dom` with `/` (search) and `/profile/:username` (details)
-
-Sample data lives in:
-
-- `src/assets/data/search/` — platform search results (10 profiles each)
-- `src/assets/data/profiles/` — detailed profile JSON per username
-
-## How to Submit
-
-1. **Download or clone** this starter project to your machine.
-2. **Create a new repository** on your own GitHub account. Do not fork the original assignment repo — push your work to a repo you own.
-3. Complete the tasks below and push your changes to that repository.
-4. **Share the public GitHub repository URL** with us as your submission.
-
-### Deadline (strict)
-
-- **Due:** **2 July 2026, 2:00 PM IST** (Indian Standard Time, UTC+5:30)
-- **Any git commits made after this deadline will disqualify your submission.** We will only consider the repository state as of the deadline; late commits will not be reviewed.
-- Make sure your final work is pushed **before** the cutoff.
-
-## AI Usage
-
-You may use any AI tools (Cursor, ChatGPT, Claude, GitHub Copilot, etc.). We are evaluating your final solution and engineering decisions.
-
-## Your Tasks
-
-Complete the following as part of your submission:
-
-1. **Find and fix all bugs and quality issues** — the codebase contains intentional bugs and quality issues. Identify and resolve them.
-
-2. **Completely redesign the UI/UX** — replace the basic layout with a polished, modern interface. Focus on usability, visual hierarchy, and delight.
-
-3. **Replace React Context with Zustand** — when you implement state management for the selected list, use [Zustand](https://github.com/pmndrs/zustand) instead of React Context.
-
-4. **Implement "Select profile & Add to List"** — the disabled "Add to List" button is a stub. Build the full feature:
-   - Select / add profiles to a persistent list
-   - View and manage the selected list
-   - Handle duplicates appropriately
-
-5. **Improve code quality and project structure** — refactor as needed, add proper types, and follow React best practices.
-
-6. **Optimize performance** — apply sensible optimizations where appropriate.
-
-7. **Use any libraries you need** — you are not limited to the current stack. Choose tools that help you deliver a great result (UI kits, state managers, testing libraries, etc.).
-
-## Scripts
-
-| Command        | Description              |
-| -------------- | ------------------------ |
-| `npm run dev`  | Start development server |
-| `npm run build`| Production build         |
-| `npm run lint` | Run ESLint               |
-
-## Submission Notes
-
-- Document any assumptions or trade-offs in your README
-- Ensure `npm run build` passes before submitting
-- Focus on demonstrating your judgment — not every possible feature needs to be built, but the core assignment items should be addressed thoughtfully
-- Double-check that your repo is public (or that we have access) and that the link is included in your submission
-- Please make meaningful commits throughout your work. We may review your commit history.
-- **Bonus:** Deploying the app (e.g. Vercel, Netlify, GitHub Pages) is optional but will be considered a plus — include the live URL in your submission if you do
-
-Good luck!
+Open [http://localhost:5173](http://localhost:5173) to view the app in your browser.
