@@ -4,6 +4,7 @@ import type { Platform, UserProfileSummary } from "@/types";
 import { VerifiedBadge } from "./VerifiedBadge";
 import { formatFollowers } from "@/utils/formatters";
 import { useListStore } from "@/store/useListStore";
+import { Avatar } from "./Avatar";
 
 interface ProfileCardProps {
   profile: UserProfileSummary;
@@ -47,12 +48,12 @@ export const ProfileCard = React.memo(function ProfileCard({
     >
       {/* Avatar */}
       <div className="relative shrink-0">
-        <img
+        <Avatar
           src={profile.picture}
           alt={profile.fullname}
-          loading="lazy"
-          className="w-14 h-14 md:w-16 md:h-16 rounded-full object-cover border-2 border-[#E8D5B5]
-                     group-hover:scale-105 transition-transform duration-500"
+          name={profile.fullname || profile.username}
+          sizeClass="w-14 h-14 md:w-16 md:h-16"
+          className="border-2 border-[#E8D5B5] group-hover:scale-105 transition-transform duration-500"
         />
       </div>
 

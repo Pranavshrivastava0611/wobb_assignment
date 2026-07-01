@@ -21,22 +21,28 @@ A premium influencer search and discovery dashboard built with **React 19**, **T
 - **Drawer** slide-in/out with spring-physics easing and staggered list item reveals.
 - **Page entrance** fade-up on every route transition.
 
-### Micro-Interactions
-| Element | Interaction |
-|---------|-------------|
+### Micro-Interactions & Graceful Fallbacks
+| Element | Interaction / Fallback |
+|---------|-------------------------|
 | Profile Cards | Hover lift with shadow bloom |
 | Logo | Letter-spacing widens on hover |
 | Back Button | Arrow slides left on hover |
-| Profile Avatar | Subtle zoom on hover |
+| Profile Avatar | Elegant zoom on hover; automatic transition to initials fallback on loading error |
 | Search Input | Brown glow ring on focus |
 | Platform Tabs | Sliding active indicator |
 | Buttons | Scale up + shadow on hover |
 
-### Core Functionality
-- **Influencer Search** — browse top creators across Instagram, YouTube, and TikTok with debounced search.
-- **Profile Detail Page** — view full stats, bio, engagement metrics with cinematic scroll presentation.
-- **Add to Collection** — curate a list of influencers, persisted to LocalStorage via Zustand.
-- **List Drawer** — slide-out panel to manage your selected creators from anywhere in the app.
+---
+
+## 🧹 Key Bug Fixes & Refinements
+
+### 1. YouTube Creator Page Openings
+* **Problem**: YouTube creators such as **Vlad and Niki** and **Kids Diana Show** did not have a `"username"` key defined in their source search data (`youtube.json`), causing the application to redirect to `/profile/undefined` and fail to load.
+* **Resolution**: Updated `extractProfiles` in `src/utils/dataHelpers.ts` to automatically map fallback identifiers (`.handle`, `.custom_name`, or `.user_id`) to the `username` property if the primary field is missing. All creators now map to unique valid paths.
+
+### 2. Broken Image Fallbacks
+* **Problem**: YouTube profile avatars (`yt3.googleusercontent.com` / `yt3.ggpht.com`) block requests with `403 Forbidden` after expiry, displaying broken icons in the browser.
+* **Resolution**: Created a reusable `<Avatar />` component in `src/components/Avatar.tsx` that catches `onError` events and dynamically generates monogram initials (e.g., `MR` for MrBeast, `VN` for Vlad and Niki). It styled using the editorial theme's warm-beige (`#F5F0E8`) background and gold (`#8B6914`) text. Integrated across all screens.
 
 ---
 
@@ -62,6 +68,8 @@ A premium influencer search and discovery dashboard built with **React 19**, **T
 src/
 ├── assets/data/           # Static JSON data (search indices, profiles)
 ├── components/
+├── components/
+│   ├── Avatar.tsx          # Memoized premium initials fallback avatar
 │   ├── Layout.tsx          # Premium navbar, page wrapper, GSAP page entrance
 │   ├── PlatformFilter.tsx  # Tab pills with GSAP sliding indicator
 │   ├── ProfileCard.tsx     # Memoized magazine-style card with hover-lift
@@ -89,7 +97,7 @@ src/
 │   ├── dataHelpers.ts      # Data extraction & optimized filtering
 │   ├── formatters.ts       # Number formatting utilities
 │   ├── gsapInit.ts         # GSAP + ScrollTrigger plugin registration
-│   ├── profileLoader.ts    # Dynamic profile JSON loader with fallback
+│   ├── profileLoader.ts    # Dynamic profile JSON loader with fallback and cache
 │   └── statHelpers.ts      # Reusable stat item builder & types
 ├── App.tsx                 # Router with React.lazy code splitting
 ├── index.css               # Design system (colors, typography, glass, cards, animations)
@@ -109,51 +117,23 @@ GitHub Actions CI pipeline (`.github/workflows/ci.yml`) runs on every push and P
 
 ---
 
-## 🧹 Code Quality
+## 🧹 Code Quality & Refactoring
 
-- **Extracted reusable components**: `StatCard`, `MarqueeCard` pulled out of monolithic page components into focused, single-responsibility files.
-- **Extracted reusable utilities**: `buildStatItems()` in `statHelpers.ts` centralises stat construction logic that was previously inlined (60+ lines) in `ProfileDetailPage`.
-- **Removed dead code**: Cleaned up unused props (`searchQuery` on `ProfileCard`), dead scratch files, and stale imports.
-- **Proper TypeScript types**: `ListProfile.platform` now uses the shared `Platform` type instead of an inline string union. `StatItem` interface exported for reuse.
-- **Consistent naming**: Record lookups replace if-chains for `getPlatformLabel`. JSDoc comments on all utility functions.
-- **Clean folder structure**: Hooks, utils, types, store, components, and pages each have clear responsibilities.
-
----
-
-## ⚡ Performance Optimizations
-
-| Optimization | Details |
-|-------------|--------|
-| **Route-based code splitting** | `React.lazy` + `Suspense` on both pages. Initial bundle reduced from 391 KB → 347 KB gzip. |
-| **React.memo** | `ProfileCard`, `ProfileList`, `StatCard` all memoized to prevent re-renders when sibling state changes. |
-| **useCallback** | All event handlers in `SearchPage`, `ProfileCard`, `ProfileDetailPage` wrapped in `useCallback` to maintain stable references. |
-| **useMemo** | Profile extraction, filtering, stat building, and marquee array all memoized. |
-| **Debounced search** | Custom `useDebounce(300ms)` hook prevents rapid re-filtering on every keystroke. |
-| **Optimized filtering** | `filterProfiles` lowercases the query once, not per-item (saves O(n) string operations). |
-| **Lazy image loading** | `loading="lazy"` on all profile avatars and marquee images. |
-| **Zustand deduplication** | `addProfile` returns the same state reference if the profile already exists, skipping a re-render. |
+- **Extracted Reusable Components**: `StatCard`, `MarqueeCard`, and `<Avatar />` pulled out of monolithic pages into single-responsibility, memoized files.
+- **Dynamic Profile Caching**: Added client-side lookup `Map` cache to `profileLoader.ts` to skip redundant filesystem imports when visiting profiles repeatedly.
+- **Zustand Persistence**: Persistent drawer state saved to LocalStorage using Zustand persist middleware.
 
 ---
 
 ## 🛠️ Assumptions & Trade-Offs
 
 ### Assumptions
-- **Data Completeness**: Only 6 of 30 profiles have detailed JSON files. The app gracefully falls back to basic search index data for profiles without dedicated files.
-- **Persistence**: "Persistent after refresh" uses client-side LocalStorage rather than a backend.
+- **Static Dataset**: Only 6 of 30 profiles have detailed JSON files. The app gracefully falls back to basic search index data for profiles without dedicated files.
+- **Referrer Blocks**: Assumed avatar image URLs can fail unexpectedly at any time due to expiration and hotlinking limits, mandating visual fallback states.
 
 ### Trade-Offs
-- **Client-Side Filtering**: All search is client-side since data is static JSON. A production app would use a debounced API call.
-- **GSAP over Framer Motion**: GSAP was chosen for its superior scroll-based animation capabilities (ScrollTrigger, pinning, horizontal scroll) which are critical for the cinematic design language.
-
----
-
-## 🚀 Future Improvements
-
-1. **Virtualization** — `@tanstack/react-virtual` for large result sets.
-2. **E2E Testing** — Playwright tests for the critical path (Search → Profile → Add to List → Persistence).
-3. **Advanced Filtering** — Filter by engagement rate, follower count ranges, or demographics.
-4. **Dark Mode Toggle** — Theme switcher between the warm white and a dark editorial mode.
-5. **Image CDN** — Use responsive `srcset` with an image optimization service for profile avatars.
+- **Client-Side Search**: Search and filtering occur in-memory. A real-world application with millions of profiles would query an Elasticsearch/Database endpoint.
+- **GSAP over Framer Motion**: GSAP was selected for complex ScrollTrigger pins and horizontal coordinate scrolling, ensuring a high-performance visual polish.
 
 ---
 

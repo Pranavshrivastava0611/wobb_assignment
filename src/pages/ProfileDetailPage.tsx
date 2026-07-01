@@ -9,6 +9,7 @@ import { useListStore } from "@/store/useListStore";
 import { buildStatItems } from "@/utils/statHelpers";
 import { useScrollReveal, useHorizontalScroll, useParallax } from "@/hooks/useGsap";
 import { gsap } from "@/utils/gsapInit";
+import { Avatar } from "@/components/Avatar";
 
 export function ProfileDetailPage() {
   const { username } = useParams<{ username: string }>();
@@ -190,10 +191,12 @@ function ProfileContent({
           <div ref={avatarParallaxRef} className="relative mb-6">
             <div className="absolute -inset-2 rounded-full border-2 border-[#E8D5B5] opacity-60" />
             <div className="absolute -inset-4 rounded-full border border-[#F0E8D5] opacity-40" />
-            <img
+            <Avatar
               src={user.picture}
               alt={user.fullname}
-              className="relative w-32 h-32 md:w-44 md:h-44 rounded-full border-4 border-white object-cover shadow-xl hover:scale-105 transition-transform duration-500"
+              name={user.fullname || user.username}
+              sizeClass="w-32 h-32 md:w-44 md:h-44"
+              className="relative border-4 border-white shadow-xl hover:scale-105 transition-transform duration-500"
             />
           </div>
 

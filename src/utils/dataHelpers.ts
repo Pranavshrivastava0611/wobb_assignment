@@ -14,10 +14,15 @@ export function getSearchData(platform: Platform): SearchData {
   return platformData[platform];
 }
 
-/** Extract flat profile summaries from the nested API response shape. */
 export function extractProfiles(platform: Platform): UserProfileSummary[] {
   const data = getSearchData(platform);
-  return data.accounts.map((item) => item.account.user_profile);
+  return data.accounts.map((item) => {
+    const profile = item.account.user_profile;
+    return {
+      ...profile,
+      username: profile.username || profile.handle || profile.custom_name || profile.user_id,
+    };
+  });
 }
 
 /**

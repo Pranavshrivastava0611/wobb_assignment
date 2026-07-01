@@ -8,16 +8,18 @@ import { useDebounce } from "@/hooks/useDebounce";
 import { useScrollReveal } from "@/hooks/useGsap";
 import { gsap } from "@/utils/gsapInit";
 import { formatFollowers } from "@/utils/formatters";
+import { Avatar } from "@/components/Avatar";
 
 /** Small marquee card for the featured creators strip. */
 function MarqueeCard({ profile }: { profile: UserProfileSummary }) {
   return (
     <div className="inline-flex items-center gap-3 bg-white/80 backdrop-blur-sm rounded-2xl px-5 py-3 border border-[rgba(193,162,101,0.12)] shadow-sm shrink-0 hover:shadow-md transition-shadow duration-300">
-      <img
+      <Avatar
         src={profile.picture}
         alt={profile.fullname}
-        loading="lazy"
-        className="w-10 h-10 rounded-full object-cover border border-[#E8D5B5]"
+        name={profile.fullname || profile.username}
+        sizeClass="w-10 h-10"
+        className="border border-[#E8D5B5]"
       />
       <div className="text-left">
         <div className="text-sm font-semibold text-[#1A1A1A]">
