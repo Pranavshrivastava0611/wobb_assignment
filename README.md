@@ -52,6 +52,7 @@ A premium influencer search and discovery dashboard built with **React 19**, **T
 | **Zustand** | Global state management with LocalStorage persistence |
 | **Lucide React** | Icon system |
 | **React Router v7** | Client-side routing |
+| **Vitest + Happy DOM** | Unit testing framework & mocked browser environment |
 
 ---
 
@@ -78,6 +79,10 @@ src/
 │   └── ProfileDetailPage.tsx # Profile detail with cinema scroll stats
 ├── store/
 │   └── useListStore.ts     # Zustand store with persist middleware
+├── tests/
+│   ├── dataHelpers.test.ts # Search & filtering unit tests
+│   ├── formatters.test.ts  # Followers & engagement formatting tests
+│   └── useListStore.test.ts # Zustand list collection CRUD store tests
 ├── types/
 │   └── index.ts            # TypeScript interfaces
 ├── utils/
@@ -98,8 +103,9 @@ src/
 GitHub Actions CI pipeline (`.github/workflows/ci.yml`) runs on every push and PR to `main`/`master`:
 
 1. **Lint** — `npm run lint` (ESLint with React Hooks & Refresh plugins)
-2. **Type Check** — `npx tsc --noEmit`
-3. **Build** — `npm run build` (production bundle, runs after lint & typecheck pass)
+2. **Type Check** — `npx tsc --noEmit` (verifies complete type-safety)
+3. **Test** — `npm run test` (runs Vitest unit tests in a happy-dom sandbox environment)
+4. **Build** — `npm run build` (production bundle, runs after lint, typecheck, and test jobs successfully pass)
 
 ---
 
@@ -169,6 +175,9 @@ npm install
 
 # Start the development server
 npm run dev
+
+# Run unit tests
+npm run test
 
 # Lint & type check
 npm run lint
