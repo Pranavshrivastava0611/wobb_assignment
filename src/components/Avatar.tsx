@@ -8,7 +8,7 @@ interface AvatarProps {
   sizeClass?: string;
 }
 
-export function getInitials(name: string): string {
+function getInitials(name: string): string {
   if (!name) return "?";
   // Remove leading @ if present
   const cleanName = name.trim().replace(/^@/, "");
